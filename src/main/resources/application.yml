@@ -10,7 +10,7 @@ spring:
 #      discovery:
 #        serviceId: config-server
       username: ${CONFIG_USER:config}
-      password: ${CONFIG_PASS:o5qByEjgPOwh3yXOqf}
+      password: ${CONFIG_PASS:l2AeM70weWbpjb1u3R}
 #  boot:
 #    admin:
 #      client:
