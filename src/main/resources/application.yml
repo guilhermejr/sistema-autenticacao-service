@@ -6,8 +6,8 @@ server:
 spring:
   application:
     name: autenticacao-service
-#  config:
-#    import: 'vault://, configserver:'
+  config:
+    import: 'vault://, configserver:https://config-server.guilhermejr.net'
   cloud:
     vault:
       host: ${VAULT_HOST:localhost}
@@ -16,11 +16,8 @@ spring:
       uri: ${VAULT_SCHEME:http}://${VAULT_HOST:localhost}:${VAULT_PORT:8200}
       token: ${VAULT_TOKEN:hvs.VSlxeCypMevB7HLAYZ1hB73L}
     config:
-      uri: https://config-server.guilhermejr.net
-      name: autenticacao-service
-      fail-fast: true
-#      discovery:
-#        serviceId: config-server
+      discovery:
+        serviceId: config-server
       username: ${CONFIG_USER:config}
       password: ${CONFIG_PASS:o5qByEjgPOwh3yXOqf}
   boot:
