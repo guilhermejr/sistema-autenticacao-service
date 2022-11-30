@@ -18,8 +18,8 @@ spring:
     config:
       discovery:
         serviceId: config-server
-      username: ${CONFIG_USER:config}
-      password: ${CONFIG_PASS:o5qByEjgPOwh3yXOqf}
+      username: ${CONFIG_SERVER_USER:config}
+      password: ${CONFIG_SERVER_PASS:o5qByEjgPOwh3yXOqf}
   boot:
     admin:
       client:
