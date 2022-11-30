@@ -16,8 +16,8 @@ spring:
         enabled: true
         application-name: autenticacao-service
     config:
-      discovery:
-        serviceId: config-server
+#      discovery:
+#        serviceId: config-server
       username: ${CONFIG_SERVER_USER:config}
       password: ${CONFIG_SERVER_PASS:o5qByEjgPOwh3yXOqf}
   boot:
