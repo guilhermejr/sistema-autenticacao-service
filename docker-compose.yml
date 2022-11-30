@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  monitoramento-server:
+    image: guilhermejr/sistema-autenticacao-service
+    container_name: autenticacao-service
+    restart: always
+    ports:
+      - "9002:9002"
+
+networks:
+  default:
+    external:
+      name: rede
