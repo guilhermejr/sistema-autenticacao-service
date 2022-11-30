@@ -9,7 +9,7 @@ spring:
   profiles:
     active: prod
   config:
-    import: 'vault://, configserver:https://config-server.guilhermejr.net'
+    import: 'vault://, configserver:'
   cloud:
     vault:
       host: ${VAULT_HOST:localhost}
@@ -17,13 +17,6 @@ spring:
       scheme: ${VAULT_SCHEME:http}
       uri: ${VAULT_SCHEME:http}://${VAULT_HOST:localhost}:${VAULT_PORT:8200}
       token: ${VAULT_TOKEN:hvs.VSlxeCypMevB7HLAYZ1hB73L}
-      generic:
-        enabled: false
-      kv:
-        enabled: true
-        backend: secret
-        default-context: application
-        application-name: autenticacao-service
     config:
       discovery:
         serviceId: config-server
