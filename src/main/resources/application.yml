@@ -6,8 +6,8 @@ server:
 spring:
   application:
     name: autenticacao-service
-#  profiles:
-#    active: prod
+  profiles:
+    active: prod
   config:
     import: 'vault://, configserver:https://config-server.guilhermejr.net'
   cloud:
