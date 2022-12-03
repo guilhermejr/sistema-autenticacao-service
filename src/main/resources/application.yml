@@ -16,8 +16,8 @@ spring:
         enabled: true
         application-name: autenticacao-service
     config:
-      username: ${CONFIG_SERVER_USER:config}
-      password: ${CONFIG_SERVER_PASS:l2AeM70weWbpjb1u3R}
+      username: config
+      password: l2AeM70weWbpjb1u3R
   boot:
     admin:
       client:
