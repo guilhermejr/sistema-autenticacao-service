@@ -4,7 +4,7 @@ spring:
   profiles:
     active: prod
   config:
-    import: 'vault://, configserver:https://config-server.guilhermejr.net'
+    import: 'vault://, configserver:http://config-server:8888'
   cloud:
     vault:
       host: ${VAULT_HOST:localhost}
@@ -16,8 +16,8 @@ spring:
         enabled: true
         application-name: autenticacao-service
     config:
-#      discovery:
-#        serviceId: config-server
+      discovery:
+        serviceId: config-server
       username: ${CONFIG_SERVER_USER:config}
       password: ${CONFIG_SERVER_PASS:o5qByEjgPOwh3yXOqf}
   boot:
