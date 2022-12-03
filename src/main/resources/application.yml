@@ -4,7 +4,7 @@ spring:
   profiles:
     active: prod
   config:
-    import: 'vault://, configserver:config-server:8888'
+    import: 'vault://, configserver:http://config-server:8888'
   cloud:
     vault:
       host: ${VAULT_HOST:localhost}
