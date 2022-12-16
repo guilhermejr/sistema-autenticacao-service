@@ -1,8 +1,6 @@
 spring:
   application:
     name: autenticacao-service
-  profiles:
-    active: prod
   config:
     import: 'vault://, configserver:http://config-server:8888'
   cloud:
