@@ -1,8 +1,8 @@
 package net.guilhermejr.sistema.autenticacaoservice.service;
 
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.awspring.cloud.messaging.core.QueueMessagingTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.dto.EsqueciMinhaSenhaDTO;
@@ -16,7 +16,6 @@ import net.guilhermejr.sistema.autenticacaoservice.domain.repository.UsuarioRepo
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionDefault;
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionNotFound;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -36,9 +35,9 @@ public class LoginService {
     private final JwtProvider jwtProvider;
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
-    private final QueueMessagingTemplate queueMessagingTemplate;
+    private final AmazonSQS amazonSQSClient;
 
-    @Value("${cloud.aws.fila.esqueci-minha-senha}")
+    @Value("${cloud.aws.fila.esqueci-minha-senha.url}")
     private String esqueciMinhaSenha;
 
     // --- Login --------------------------------------------------------------
@@ -95,9 +94,17 @@ public class LoginService {
             throw new RuntimeException(e);
         }
 
-        queueMessagingTemplate.send(esqueciMinhaSenha, MessageBuilder.withPayload(msg).build());
+        try {
 
-        log.info("Nova senha enviada para {}", email);
+            amazonSQSClient.sendMessage(esqueciMinhaSenha, msg);
+            log.info("Dados de {} gravados na fila para serem processados", esqueciMinhaSenhaDTO.getNome());
+
+        } catch (Exception e) {
+
+            log.error("Erro ao enviar mensagem para fila - {}", e.getMessage());
+            throw new ExceptionDefault("Erro ao enviar mensagem para fila");
+
+        }
 
     }
 }
