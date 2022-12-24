@@ -1,5 +1,8 @@
 package net.guilhermejr.sistema.autenticacaoservice.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.awspring.cloud.messaging.core.QueueMessagingTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.dto.EsqueciMinhaSenhaDTO;
@@ -13,7 +16,7 @@ import net.guilhermejr.sistema.autenticacaoservice.domain.repository.UsuarioRepo
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionDefault;
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionNotFound;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,7 +24,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -34,10 +36,10 @@ public class LoginService {
     private final JwtProvider jwtProvider;
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
-    private final KafkaTemplate<String, Serializable> kafkaTemplate;
+    private final QueueMessagingTemplate queueMessagingTemplate;
 
-    @Value("${kafka.topico.esqueci-minha-senha}")
-    private String topicoEsqueciMinhaSenha;
+    @Value("${cloud.aws.fila.esqueci-minha-senha}")
+    private String esqueciMinhaSenha;
 
     // --- Login --------------------------------------------------------------
     public JWTResponde login (LoginRequest loginRequest) {
@@ -85,7 +87,16 @@ public class LoginService {
 
         EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO = EsqueciMinhaSenhaDTO.builder().nome(usuario.getNome()).email(usuario.getEmail()).senha(novaSenha).build();
 
-        kafkaTemplate.send(topicoEsqueciMinhaSenha, esqueciMinhaSenhaDTO);
+        ObjectMapper mapper = new ObjectMapper();
+        String msg = null;
+        try {
+            msg = mapper.writeValueAsString(esqueciMinhaSenhaDTO);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        queueMessagingTemplate.send(esqueciMinhaSenha, MessageBuilder.withPayload(msg).build());
+
         log.info("Nova senha enviada para {}", email);
 
     }
