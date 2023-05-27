@@ -45,7 +45,7 @@ public class WebSecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers(LISTA_BRANCA).permitAll()
+                .requestMatchers(LISTA_BRANCA).permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .csrf().disable();

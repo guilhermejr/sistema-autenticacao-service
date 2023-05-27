@@ -9,14 +9,13 @@ import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.EsqueciMinhaSenhaRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.JWTResponde;
-import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionDefault;
 import net.guilhermejr.sistema.autenticacaoservice.exception.dto.ErrorDefaultDTO;
 import net.guilhermejr.sistema.autenticacaoservice.service.LoginService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 @Log4j2
 @RequiredArgsConstructor

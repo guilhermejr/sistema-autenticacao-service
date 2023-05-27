@@ -3,9 +3,8 @@ package net.guilhermejr.sistema.autenticacaoservice.domain.entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
-import org.hibernate.envers.Audited;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "usuarios")
-@Audited
 public class Usuario implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -4,8 +4,8 @@ import net.guilhermejr.sistema.autenticacaoservice.api.request.validation.constr
 import net.guilhermejr.sistema.autenticacaoservice.domain.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
