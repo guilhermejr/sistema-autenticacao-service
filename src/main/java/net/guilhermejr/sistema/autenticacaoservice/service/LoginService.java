@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.UUID;
 
 @Log4j2
@@ -55,19 +56,40 @@ public class LoginService {
 
             // --- Atualiza último acesso ---
             UserDetailsImpl usuarioLogado = (UserDetailsImpl) authentication.getPrincipal();
-            Usuario usuarioDB = usuarioRepository.findById(usuarioLogado.getId()).get();
-            usuarioDB.setUltimoAcesso(LocalDateTime.now(ZoneId.of("UTC")));
-            usuarioRepository.save(usuarioDB);
+            usuarioRepository.findById(usuarioLogado.getId()).ifPresent(usuario -> {
+                usuario.setUltimoAcesso(LocalDateTime.now(ZoneId.of("UTC")));
+                usuario.setTentativaLogin(0);
+                usuarioRepository.save(usuario);
+            });
 
             // --- Retorno ---
             return new JWTResponde(jwt);
 
         } catch (Exception e) {
 
+            atualizarTentativaLogin(loginRequest.getEmail());
+
             log.error("Usuário: {} não informou uma chave email:senha válidos, ou está inativo.", loginRequest.getEmail());
             throw new ExceptionDefault("Combinação de e-mail e senha inválidos.");
 
         }
+
+    }
+
+    private void atualizarTentativaLogin(String email) {
+
+        usuarioRepository.findByEmail(email).ifPresentOrElse(usuario -> {
+            log.info("Adicionando tentativa de login inválido para o e-mail: {}", email);
+            int tentativas = usuario.getTentativaLogin() + 1;
+            if (tentativas >= 3) {
+                usuario.setAtivo(Boolean.FALSE);
+            }
+            usuario.setTentativaLogin(tentativas);
+            usuarioRepository.save(usuario);
+
+        }, () -> {
+            log.info("E-mail não existe na base de dados: {}", email);
+        });
 
     }
 
