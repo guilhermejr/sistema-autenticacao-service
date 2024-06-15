@@ -16,7 +16,7 @@ public class JwtProvider {
     @Value("${sistema.auth.jwtSecret}")
     private String jwtSecret;
     @Value("${sistema.auth.jwtExpirationMs}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
 
     public String generateJwt(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
