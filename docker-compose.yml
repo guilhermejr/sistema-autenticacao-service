@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   autenticacao-service:
     image: guilhermejr/sistema-autenticacao-service
