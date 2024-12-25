@@ -13,7 +13,6 @@ import net.guilhermejr.sistema.autenticacaoservice.domain.entity.Usuario;
 import net.guilhermejr.sistema.autenticacaoservice.domain.repository.UsuarioRepository;
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionDefault;
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionNotFound;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -35,9 +35,6 @@ public class LoginService {
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoClient notificacaoClient;
-
-    @Value("${cloud.aws.fila.esqueci-minha-senha.url}")
-    private String esqueciMinhaSenha;
 
     // --- Login --------------------------------------------------------------
     public JWTResponde login (LoginRequest loginRequest) {
@@ -79,7 +76,8 @@ public class LoginService {
         usuarioRepository.findByEmail(email).ifPresentOrElse(usuario -> {
             log.info("Adicionando tentativa de login inválido para o e-mail: {}", email);
             int tentativas = usuario.getTentativaLogin() + 1;
-            if (tentativas >= 3) {
+            if (tentativas == 3) {
+
                 usuario.setAtivo(Boolean.FALSE);
             }
             usuario.setTentativaLogin(tentativas);
@@ -92,32 +90,31 @@ public class LoginService {
     }
 
     // --- EsqueciMinhaSenha --------------------------------------------------
+    @Transactional
     public void esqueciMinhaSenha(EsqueciMinhaSenhaRequest esqueciMinhaSenhaRequest) {
 
-        String novaSenha = UUID.randomUUID().toString();
-        String novaSenhaCriptografada = new BCryptPasswordEncoder().encode(novaSenha);
-        String email = esqueciMinhaSenhaRequest.getEmail();
-        Usuario usuario = usuarioRepository.findByEmail(esqueciMinhaSenhaRequest.getEmail()).orElseThrow(() -> {
-            log.error("Usuário: {} - Não encontrado", email);
-            throw new ExceptionNotFound("Usuário: "+ email +" - Não encontrado");
-        });
-        usuario.setSenha(novaSenhaCriptografada);
-        usuarioRepository.save(usuario);
+        Usuario usuario = usuarioRepository.findByEmail(esqueciMinhaSenhaRequest.getEmail()).orElseThrow(
+                () -> new ExceptionNotFound("Usuário: " + esqueciMinhaSenhaRequest.getEmail() + " - Não encontrado")
+        );
+
+        String hash = UUID.randomUUID().toString();
+
+        usuario.setRecuperarSenha(hash);
 
         EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO = EsqueciMinhaSenhaDTO
                 .builder()
                 .nome(usuario.getNome())
                 .email(usuario.getEmail())
-                .senha(novaSenha)
+                .hash(hash)
                 .build();
 
         try {
 
-            ResponseEntity<Void> re = notificacaoClient.enviarRecuperarSenhaFila(esqueciMinhaSenhaDTO);
+            ResponseEntity<Void> re = notificacaoClient.enviarLink(esqueciMinhaSenhaDTO);
             if (re.getStatusCode().is2xxSuccessful()) {
-                log.info("Dados de {} gravados na fila para serem processados", esqueciMinhaSenhaDTO.getNome());
+                log.info("Dados de {} gravados na fila para serem processados", esqueciMinhaSenhaRequest.getEmail());
             } else {
-                log.error("Error ao gravar dados de {} na fila para semrem processados", esqueciMinhaSenhaDTO.getNome());
+                log.error("Error ao gravar dados de {} na fila para semrem processados", esqueciMinhaSenhaRequest.getEmail());
             }
 
         } catch (Exception e) {
@@ -128,4 +125,42 @@ public class LoginService {
         }
 
     }
+
+    // --- enviaSenhaNova -----------------------------------------------------
+//    public void enviaSenhaNova() {
+//
+//        String novaSenha = UUID.randomUUID().toString();
+//        String novaSenhaCriptografada = new BCryptPasswordEncoder().encode(novaSenha);
+//        String email = esqueciMinhaSenhaRequest.getEmail();
+//        Usuario usuario = usuarioRepository.findByEmail(esqueciMinhaSenhaRequest.getEmail()).orElseThrow(() -> {
+//            log.error("Usuário: {} - Não encontrado", email);
+//            throw new ExceptionNotFound("Usuário: "+ email +" - Não encontrado");
+//        });
+//        usuario.setSenha(novaSenhaCriptografada);
+//        usuarioRepository.save(usuario);
+//
+//        EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO = EsqueciMinhaSenhaDTO
+//                .builder()
+//                .nome(usuario.getNome())
+//                .email(usuario.getEmail())
+//                .senha(novaSenha)
+//                .build();
+//
+//        try {
+//
+//            ResponseEntity<Void> re = notificacaoClient.enviarRecuperarSenhaFila(esqueciMinhaSenhaDTO);
+//            if (re.getStatusCode().is2xxSuccessful()) {
+//                log.info("Dados de {} gravados na fila para serem processados", esqueciMinhaSenhaDTO.getNome());
+//            } else {
+//                log.error("Error ao gravar dados de {} na fila para semrem processados", esqueciMinhaSenhaDTO.getNome());
+//            }
+//
+//        } catch (Exception e) {
+//
+//            log.error("Erro ao enviar mensagem para fila - {}", e.getMessage());
+//            throw new ExceptionDefault("Erro ao enviar mensagem para fila");
+//
+//        }
+//    }
+
 }

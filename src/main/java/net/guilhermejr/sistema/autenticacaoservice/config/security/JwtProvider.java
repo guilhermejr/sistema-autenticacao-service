@@ -24,6 +24,8 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getId().toString()))
+                .claim("nome", userPrincipal.getNome())
+                .claim("email", userPrincipal.getEmail())
                 .claim("perfis", perfis)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))

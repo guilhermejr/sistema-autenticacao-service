@@ -43,6 +43,9 @@ public class Usuario implements Serializable {
     @Column(nullable = false)
     private Integer tentativaLogin = 0;
 
+    @Column
+    private String recuperarSenha;
+
     @Column(updatable = false)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     private LocalDateTime criado;

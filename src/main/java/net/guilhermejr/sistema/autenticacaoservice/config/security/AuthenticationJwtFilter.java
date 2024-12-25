@@ -2,6 +2,7 @@ package net.guilhermejr.sistema.autenticacaoservice.config.security;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,7 +27,7 @@ public class AuthenticationJwtFilter extends OncePerRequestFilter {
     private UserDetailsServiceImpl userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwtStr = getTokenHeader(request);
             if (jwtStr != null && jwtProvider.validateJwt(jwtStr)) {
@@ -46,7 +47,7 @@ public class AuthenticationJwtFilter extends OncePerRequestFilter {
     private String getTokenHeader(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7, headerAuth.length());
+            return headerAuth.substring(7);
         }
         return null;
     }

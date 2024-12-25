@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "notificacao-service", url = "http://${sistema.notificacao.host}/notificacao-service/autenticacao")
 public interface NotificacaoClient {
 
-    @PostMapping("/enviar-recuperar-senha-fila")
-    public ResponseEntity<Void> enviarRecuperarSenhaFila(@RequestBody EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO);
+//    @PostMapping("/enviar-recuperar-senha-fila")
+//    public ResponseEntity<Void> enviarRecuperarSenhaFila(@RequestBody EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO);
+
+    @PostMapping("/enviar-link")
+    public ResponseEntity<Void> enviarLink(@RequestBody EsqueciMinhaSenhaDTO esqueciMinhaSenhaDTO);
 
 }

@@ -1,19 +1,11 @@
 package net.guilhermejr.sistema.autenticacaoservice.api.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.TrocaSenhaRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.UsuarioAtualizarRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.UsuarioRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.UsuarioResponse;
-import net.guilhermejr.sistema.autenticacaoservice.exception.dto.ErrorDefaultDTO;
-import net.guilhermejr.sistema.autenticacaoservice.exception.dto.ErrorRequestDTO;
 import net.guilhermejr.sistema.autenticacaoservice.service.UsuarioService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +22,6 @@ import java.util.UUID;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
-@CrossOrigin(origins = "*", maxAge = 3600)
 @PreAuthorize("hasAnyRole('ADMIN')")
 @RequestMapping("/usuarios")
 public class UsuarioController {
@@ -38,10 +29,6 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     // --- Retornar -----------------------------------------------------------
-    @Operation(summary = "Retorna usuários", responses = {
-            @ApiResponse(responseCode = "200", description = "OK",content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = UsuarioResponse.class)))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class)))
-    })
     @GetMapping
     public ResponseEntity<Page<UsuarioResponse>> retornar(@PageableDefault(page = 0, size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable paginacao) {
 
@@ -52,11 +39,6 @@ public class UsuarioController {
     }
 
     // --- Atualizar ----------------------------------------------------------
-    @Operation(summary = "Atualiza um usuário", responses = {
-            @ApiResponse(responseCode = "200", description = "OK",content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Não encontrado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class)))
-    })
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponse> atualizar(@PathVariable UUID id, @Valid @RequestBody UsuarioAtualizarRequest usuarioAtualizarRequest) {
 
@@ -67,13 +49,8 @@ public class UsuarioController {
     }
 
     // --- RetornarUm ---------------------------------------------------------
-    @Operation(summary = "Retorna um usuário", responses = {
-            @ApiResponse(responseCode = "200", description = "OK",content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Não encontrado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class)))
-    })
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> retornarUm(@Parameter(description = "ID do usuário", example = "6cf41e83-ab70-4598-8eb4-354a49b19e3f") @PathVariable UUID id) {
+    public ResponseEntity<UsuarioResponse> retornarUm(@PathVariable UUID id) {
 
         log.info("Recuperando um usuário: {}", id);
         UsuarioResponse usuarioResponse = usuarioService.retornarUm(id);
@@ -82,10 +59,6 @@ public class UsuarioController {
     }
 
     // --- TrocarSenha --------------------------------------------------------
-    @Operation(summary = "Trocar senha do usuário", responses = {
-            @ApiResponse(responseCode = "204", description = "OK", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class)))
-    })
     @PutMapping("/trocar-senha")
     public ResponseEntity<Void> trocarSenha(@Valid @RequestBody TrocaSenhaRequest trocaSenhaRequest) {
 
@@ -96,10 +69,6 @@ public class UsuarioController {
     }
 
     // --- Inserir ------------------------------------------------------------
-    @Operation(summary = "Insere um usuário", responses = {
-            @ApiResponse(responseCode = "201", description = "OK",content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorRequestDTO.class)))
-    })
     @PostMapping
     public ResponseEntity<UsuarioResponse> inserir(@Valid @RequestBody UsuarioRequest usuarioRequest) {
 
@@ -110,12 +79,8 @@ public class UsuarioController {
     }
 
     // --- AlterarStatus ------------------------------------------------------
-    @Operation(summary = "Muda o status do usuário", responses = {
-            @ApiResponse(responseCode = "204", description = "Status modificado"),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDefaultDTO.class)))
-    })
     @PutMapping(path = "{id}/alterar-status")
-    public ResponseEntity<Void> alterarStatus(@Parameter(description = "ID do usuário", example = "6cf41e83-ab70-4598-8eb4-354a49b19e3f") @PathVariable UUID id) {
+    public ResponseEntity<Void> alterarStatus(@PathVariable UUID id) {
 
         usuarioService.alterarStatus(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
