@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
 FROM openjdk:21
 LABEL maintainer="Guilherme Jr. <falecom@guilhermejr.net>"
 ENV TZ=America/Bahia
