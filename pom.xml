@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>net.guilhermejr.sistema</groupId>
 	<artifactId>autenticacao-service</artifactId>
-	<version>0.0.3</version>
+	<version>0.0.4</version>
 	<name>autenticacao-service</name>
 	<description>Microserviço de autenticação</description>
 	<properties>

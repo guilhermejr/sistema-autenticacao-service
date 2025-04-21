@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.EsqueciMinhaSenhaRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginRequest;
+import net.guilhermejr.sistema.autenticacaoservice.api.request.RefreshTokenRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.JWTResponde;
 import net.guilhermejr.sistema.autenticacaoservice.service.LoginService;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,16 @@ public class LoginController {
 
         log.info("Iniciando login do usuário");
         JWTResponde jwtResponde = loginService.login(loginRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(jwtResponde);
+
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<JWTResponde> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+
+        log.info("Post: {}", refreshTokenRequest);
+        log.info("Iniciando refreshtoken");
+        JWTResponde jwtResponde = loginService.refreshToken(refreshTokenRequest);
         return ResponseEntity.status(HttpStatus.OK).body(jwtResponde);
 
     }

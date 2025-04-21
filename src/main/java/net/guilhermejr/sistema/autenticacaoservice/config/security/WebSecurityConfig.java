@@ -27,6 +27,7 @@ public class WebSecurityConfig {
 
     private static final String[] LISTA_BRANCA = {
             "/login",
+            "/refresh-token",
             "/esqueci-minha-senha",
             "/trocar-senha",
             "/actuator/**"

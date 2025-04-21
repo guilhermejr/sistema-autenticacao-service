@@ -10,6 +10,9 @@ public class JWTResponde {
 
     @NonNull
     private String token;
+
+    @NonNull
+    private String refreshToken;
     private String tipo = "Bearer";
 
 }

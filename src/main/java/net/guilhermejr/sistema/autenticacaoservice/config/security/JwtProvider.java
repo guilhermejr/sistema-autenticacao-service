@@ -18,7 +18,7 @@ public class JwtProvider {
     @Value("${sistema.auth.jwtExpirationMs}")
     private long jwtExpirationMs;
 
-    public String generateJwt(Authentication authentication) {
+    public String generateToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
         final String perfis = userPrincipal.getPerfis().stream().map(perfil -> perfil.getAuthority()).collect(Collectors.joining(","));
 
@@ -33,11 +33,24 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String getSubjectJwt(String token) {
+    public String gerarRefreshToken(Authentication authentication) {
+
+        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+
+        return Jwts.builder()
+                .setSubject((userPrincipal.getEmail()))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs + 86400000))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
+
+    }
+
+    public String getSubjectToken(String token) {
         return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject();
     }
 
-    public boolean validateJwt(String authToken) {
+    public boolean validateToken(String authToken) {
         try {
             Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken);
             return true;
@@ -54,5 +67,4 @@ public class JwtProvider {
         }
         return false;
     }
-
 }

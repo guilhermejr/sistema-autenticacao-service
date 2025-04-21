@@ -1,14 +1,17 @@
 package net.guilhermejr.sistema.autenticacaoservice.service;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.dto.EsqueciMinhaSenhaDTO;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.EsqueciMinhaSenhaRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginRequest;
+import net.guilhermejr.sistema.autenticacaoservice.api.request.RefreshTokenRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.JWTResponde;
 import net.guilhermejr.sistema.autenticacaoservice.client.NotificacaoClient;
 import net.guilhermejr.sistema.autenticacaoservice.config.security.JwtProvider;
 import net.guilhermejr.sistema.autenticacaoservice.config.security.UserDetailsImpl;
+import net.guilhermejr.sistema.autenticacaoservice.config.security.UserDetailsServiceImpl;
 import net.guilhermejr.sistema.autenticacaoservice.domain.entity.Usuario;
 import net.guilhermejr.sistema.autenticacaoservice.domain.repository.UsuarioRepository;
 import net.guilhermejr.sistema.autenticacaoservice.exception.ExceptionDefault;
@@ -18,7 +21,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,7 @@ public class LoginService {
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoClient notificacaoClient;
+    private final UserDetailsServiceImpl userDetailsService;
 
     // --- Login --------------------------------------------------------------
     public JWTResponde login (LoginRequest loginRequest) {
@@ -46,7 +50,7 @@ public class LoginService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // --- Gera token jwt ---
-            String jwt = jwtProvider.generateJwt(authentication);
+            String token = jwtProvider.generateToken(authentication);
             log.info("Usuário: {} autenticado com sucesso", loginRequest.getEmail());
 
             // --- Atualiza último acesso ---
@@ -57,8 +61,11 @@ public class LoginService {
                 usuarioRepository.save(usuario);
             });
 
+            // --- Gera refreshToken ---
+            String refreshToken = jwtProvider.gerarRefreshToken(authentication);
+
             // --- Retorno ---
-            return new JWTResponde(jwt);
+            return new JWTResponde(token, refreshToken);
 
         } catch (Exception e) {
 
@@ -67,6 +74,30 @@ public class LoginService {
             log.error("Usuário: {} não informou uma chave email:senha válidos, ou está inativo.", loginRequest.getEmail());
             throw new ExceptionDefault("Combinação de e-mail e senha inválidos.");
 
+        }
+
+    }
+
+    public JWTResponde refreshToken(@Valid RefreshTokenRequest refreshTokenRequest) {
+
+        if (jwtProvider.validateToken(refreshTokenRequest.getRefreshToken())) {
+            String email = jwtProvider.getSubjectToken(refreshTokenRequest.getRefreshToken());
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // --- Gera token jwt ---
+            String token = jwtProvider.generateToken(authentication);
+
+            // --- Gera refreshToken ---
+            String refreshToken = jwtProvider.gerarRefreshToken(authentication);
+
+            // --- Retorno ---
+            return new JWTResponde(token, refreshToken);
+
+        } else {
+            throw new ExceptionDefault("RefreshToken inválido");
         }
 
     }
