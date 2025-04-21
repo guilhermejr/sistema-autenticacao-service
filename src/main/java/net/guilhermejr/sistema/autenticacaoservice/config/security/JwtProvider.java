@@ -15,8 +15,12 @@ public class JwtProvider {
 
     @Value("${sistema.auth.jwtSecret}")
     private String jwtSecret;
+
     @Value("${sistema.auth.jwtExpirationMs}")
     private long jwtExpirationMs;
+
+    @Value("${sistema.auth.jwtRefreshTokenExpirationMs}")
+    private long jwtRefreshTokenExpirationMs;
 
     public String generateToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
@@ -40,7 +44,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .setSubject((userPrincipal.getEmail()))
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs + 86400000))
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs + jwtRefreshTokenExpirationMs))
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
 
