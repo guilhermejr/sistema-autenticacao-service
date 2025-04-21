@@ -20,9 +20,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WebSecurityConfig {
 
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
+    private final AuthenticationJwtFilter authenticationJwtFilter;
 
-    public WebSecurityConfig(AuthenticationEntryPointImpl authenticationEntryPoint) {
+    public WebSecurityConfig(AuthenticationEntryPointImpl authenticationEntryPoint, AuthenticationJwtFilter authenticationJwtFilter) {
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.authenticationJwtFilter = authenticationJwtFilter;
     }
 
     private static final String[] LISTA_BRANCA = {
@@ -34,11 +36,6 @@ public class WebSecurityConfig {
     };
 
     @Bean
-    public AuthenticationJwtFilter authenticationJwtFilter() {
-        return new AuthenticationJwtFilter();
-    }
-
-    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -48,7 +45,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                     .requestMatchers(LISTA_BRANCA).permitAll()
                     .anyRequest().authenticated());
-        http.addFilterBefore(authenticationJwtFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationJwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
