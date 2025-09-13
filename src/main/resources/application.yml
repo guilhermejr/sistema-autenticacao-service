@@ -26,7 +26,7 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
-logging:
-  file:
-    name: log.log
-    path: .
+#logging:
+#  file:
+#    name: log.log
+#    path: .
