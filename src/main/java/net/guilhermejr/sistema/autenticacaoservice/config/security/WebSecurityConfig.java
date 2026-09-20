@@ -33,7 +33,8 @@ public class WebSecurityConfig {
             "/refresh-token",
             "/esqueci-minha-senha",
             "/trocar-senha",
-            "/actuator/**"
+            "/actuator/health",
+            "/actuator/health/**"
     };
 
     @Bean
