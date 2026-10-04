@@ -3,9 +3,11 @@ package net.guilhermejr.sistema.autenticacaoservice.api.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.EsqueciMinhaSenhaRequest;
+import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginDoisFatoresRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.RefreshTokenRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.JWTResponde;
+import net.guilhermejr.sistema.autenticacaoservice.api.response.LoginResponse;
 import net.guilhermejr.sistema.autenticacaoservice.service.LoginService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +25,19 @@ public class LoginController {
 
     // --- Login --------------------------------------------------------------
     @PostMapping("/login")
-    public ResponseEntity<JWTResponde> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
 
         log.info("Iniciando login do usuário");
-        JWTResponde jwtResponde = loginService.login(loginRequest);
+        LoginResponse loginResponse = loginService.login(loginRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(loginResponse);
+
+    }
+
+    @PostMapping("/login/dois-fatores")
+    public ResponseEntity<JWTResponde> loginDoisFatores(@Valid @RequestBody LoginDoisFatoresRequest loginDoisFatoresRequest) {
+
+        log.info("Iniciando login do usuário: código de dois fatores");
+        JWTResponde jwtResponde = loginService.loginDoisFatores(loginDoisFatoresRequest);
         return ResponseEntity.status(HttpStatus.OK).body(jwtResponde);
 
     }

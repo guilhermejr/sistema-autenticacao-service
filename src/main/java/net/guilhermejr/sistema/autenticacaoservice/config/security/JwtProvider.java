@@ -14,8 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -35,11 +41,31 @@ public class JwtProvider {
     @Value("${sistema.auth.jwtRefreshTokenExpirationMs}")
     private long jwtRefreshTokenExpirationMs;
 
+    // --- Validade do token entre a senha e o código do autenticador ---
+    private static final long DOIS_FATORES_EXPIRACAO_MS = 5 * 60 * 1000;
+
     private SecretKey chave;
+
+    // --- Assina só o token de dois fatores. Os demais serviços validam com a chave
+    // --- principal e montam o usuário só pelas claims, então esse token não pode
+    // --- ser assinado com ela: lá ele valeria como access token sem o código. ---
+    private SecretKey chaveDoisFatores;
 
     @PostConstruct
     void inicializarChave() {
-        this.chave = Keys.hmacShaKeyFor(decodificarSegredo());
+        byte[] segredo = decodificarSegredo();
+        this.chave = Keys.hmacShaKeyFor(segredo);
+        this.chaveDoisFatores = Keys.hmacShaKeyFor(derivarChave(segredo, "dois-fatores"));
+    }
+
+    private byte[] derivarChave(byte[] segredo, String finalidade) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA512");
+            mac.init(new SecretKeySpec(segredo, "HmacSHA512"));
+            return mac.doFinal(finalidade.getBytes(StandardCharsets.UTF_8));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("HmacSHA512 indisponível", e);
+        }
     }
 
     private byte[] decodificarSegredo() {
@@ -83,6 +109,27 @@ public class JwtProvider {
                 .signWith(chave, Jwts.SIG.HS512)
                 .compact();
 
+    }
+
+    public String gerarTokenDoisFatores(UUID idUsuario) {
+
+        return Jwts.builder()
+                .subject(idUsuario.toString())
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + DOIS_FATORES_EXPIRACAO_MS))
+                .signWith(chaveDoisFatores, Jwts.SIG.HS512)
+                .compact();
+
+    }
+
+    public Optional<UUID> validarTokenDoisFatores(String token) {
+        try {
+            String subject = Jwts.parser().verifyWith(chaveDoisFatores).build().parseSignedClaims(token).getPayload().getSubject();
+            return Optional.of(UUID.fromString(subject));
+        } catch (Exception e) {
+            log.error("Token de dois fatores inválido: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     public String getSubjectToken(String token) {

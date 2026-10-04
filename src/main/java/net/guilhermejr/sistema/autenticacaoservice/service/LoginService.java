@@ -5,9 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.guilhermejr.sistema.autenticacaoservice.api.dto.EsqueciMinhaSenhaDTO;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.EsqueciMinhaSenhaRequest;
+import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginDoisFatoresRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.LoginRequest;
 import net.guilhermejr.sistema.autenticacaoservice.api.request.RefreshTokenRequest;
+import net.guilhermejr.sistema.autenticacaoservice.api.response.DoisFatoresDesafioResponse;
 import net.guilhermejr.sistema.autenticacaoservice.api.response.JWTResponde;
+import net.guilhermejr.sistema.autenticacaoservice.api.response.LoginResponse;
 import net.guilhermejr.sistema.autenticacaoservice.client.NotificacaoClient;
 import net.guilhermejr.sistema.autenticacaoservice.config.security.JwtProvider;
 import net.guilhermejr.sistema.autenticacaoservice.config.security.UserDetailsImpl;
@@ -27,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.OptionalLong;
 import java.util.UUID;
 
 @Log4j2
@@ -39,33 +43,16 @@ public class LoginService {
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoClient notificacaoClient;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TotpService totpService;
 
     // --- Login --------------------------------------------------------------
-    public JWTResponde login (LoginRequest loginRequest) {
+    public LoginResponse login (LoginRequest loginRequest) {
 
+        Authentication authentication;
         try {
 
-            // --- Realiza autenticação e grava no contexto ---
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getSenha()));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // --- Gera token jwt ---
-            String token = jwtProvider.generateToken(authentication);
-            log.info("Usuário: {} autenticado com sucesso", loginRequest.getEmail());
-
-            // --- Atualiza último acesso ---
-            UserDetailsImpl usuarioLogado = (UserDetailsImpl) authentication.getPrincipal();
-            usuarioRepository.findById(usuarioLogado.getId()).ifPresent(usuario -> {
-                usuario.setUltimoAcesso(LocalDateTime.now(ZoneId.of("UTC")));
-                usuario.setTentativaLogin(0);
-                usuarioRepository.save(usuario);
-            });
-
-            // --- Gera refreshToken ---
-            String refreshToken = jwtProvider.gerarRefreshToken(authentication);
-
-            // --- Retorno ---
-            return new JWTResponde(token, refreshToken);
+            // --- Realiza autenticação ---
+            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getSenha()));
 
         } catch (Exception e) {
 
@@ -75,6 +62,69 @@ public class LoginService {
             throw new ExceptionDefault("Combinação de e-mail e senha inválidos.");
 
         }
+
+        // --- Com dois fatores ativo, a senha só dá direito a tentar o código.
+        // --- O contador de tentativas não é zerado aqui: senão a senha certa
+        // --- permitiria tentar códigos sem limite. ---
+        UserDetailsImpl usuarioLogado = (UserDetailsImpl) authentication.getPrincipal();
+        Usuario usuario = usuarioRepository.findById(usuarioLogado.getId()).orElseThrow(
+                () -> new ExceptionDefault("Combinação de e-mail e senha inválidos.")
+        );
+        if (Boolean.TRUE.equals(usuario.getDoisFatoresAtivo())) {
+            log.info("Usuário: {} informou a senha, aguardando código de dois fatores", loginRequest.getEmail());
+            return new DoisFatoresDesafioResponse(jwtProvider.gerarTokenDoisFatores(usuario.getId()));
+        }
+
+        log.info("Usuário: {} autenticado com sucesso", loginRequest.getEmail());
+        return concluirLogin(authentication, usuario);
+
+    }
+
+    // --- LoginDoisFatores ---------------------------------------------------
+    // --- Sem @Transactional: a exceção do código inválido desfaria o incremento da tentativa ---
+    public JWTResponde loginDoisFatores(LoginDoisFatoresRequest loginDoisFatoresRequest) {
+
+        UUID id = jwtProvider.validarTokenDoisFatores(loginDoisFatoresRequest.getTokenDoisFatores()).orElseThrow(
+                () -> new ExceptionDefault("O tempo para informar o código expirou. Entre novamente.")
+        );
+        Usuario usuario = usuarioRepository.findById(id)
+                .filter(u -> Boolean.TRUE.equals(u.getAtivo()) && Boolean.TRUE.equals(u.getDoisFatoresAtivo()))
+                .orElseThrow(() -> new ExceptionDefault("Usuário inativo ou sem dois fatores. Entre novamente."));
+
+        OptionalLong passo = totpService.validar(usuario.getDoisFatoresSegredo(), loginDoisFatoresRequest.getCodigo(), usuario.getDoisFatoresUltimoPasso());
+        if (passo.isEmpty()) {
+            atualizarTentativaLogin(usuario.getEmail());
+            log.error("Usuário: {} informou código de dois fatores inválido", usuario.getEmail());
+            throw new ExceptionDefault("Código inválido.");
+        }
+        usuario.setDoisFatoresUltimoPasso(passo.getAsLong());
+
+        UserDetails userDetails = userDetailsService.loadUserById(id);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+
+        log.info("Usuário: {} autenticado com sucesso (dois fatores)", usuario.getEmail());
+        return concluirLogin(authentication, usuario);
+
+    }
+
+    private JWTResponde concluirLogin(Authentication authentication, Usuario usuario) {
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // --- Gera token jwt ---
+        String token = jwtProvider.generateToken(authentication);
+
+        // --- Atualiza último acesso ---
+        usuario.setUltimoAcesso(LocalDateTime.now(ZoneId.of("UTC")));
+        usuario.setTentativaLogin(0);
+        usuarioRepository.save(usuario);
+
+        // --- Gera refreshToken ---
+        String refreshToken = jwtProvider.gerarRefreshToken(authentication);
+
+        // --- Retorno ---
+        return new JWTResponde(token, refreshToken);
 
     }
 
@@ -102,7 +152,7 @@ public class LoginService {
 
     }
 
-    private void atualizarTentativaLogin(String email) {
+    void atualizarTentativaLogin(String email) {
 
         usuarioRepository.findByEmail(email).ifPresentOrElse(usuario -> {
             log.info("Adicionando tentativa de login inválido para o e-mail: {}", email);

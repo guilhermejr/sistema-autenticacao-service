@@ -6,13 +6,11 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class JWTResponde implements LoginResponse {
+public class DoisFatoresDesafioResponse implements LoginResponse {
+
+    private final boolean doisFatores = true;
 
     @NonNull
-    private String token;
-
-    @NonNull
-    private String refreshToken;
-    private String tipo = "Bearer";
+    private String tokenDoisFatores;
 
 }

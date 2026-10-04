@@ -22,7 +22,7 @@ An important difference: `AuthenticationJwtFilter` **ignores the `perfis` claim*
 
 `WebSecurityConfig` carries `@EnableMethodSecurity` — without it the `@PreAuthorize("hasAnyRole('ADMIN')")` on the controllers is silently ignored and any authenticated user reaches `/usuarios`.
 
-Public routes are listed in `LISTA_BRANCA`: `/login`, `/refresh-token`, `/esqueci-minha-senha` and `/actuator/health`. Note the stale `/trocar-senha` entry — the real mapping is `/usuarios/trocar-senha`, so that entry never matches.
+Public routes are listed in `LISTA_BRANCA`: `/login`, `/login/dois-fatores`, `/refresh-token`, `/esqueci-minha-senha` and `/actuator/health`. Note the stale `/trocar-senha` entry — the real mapping is `/usuarios/trocar-senha`, so that entry never matches.
 
 Because the whole `UsuarioController` is annotated `ROLE_ADMIN`, `PUT /usuarios/trocar-senha` is admin-only too. A non-admin user cannot change their own password.
 
@@ -36,6 +36,25 @@ Changing that secret invalidates every token in circulation and requires deployi
 
 - Passwords are stored with BCrypt.
 - Three failed logins **deactivate** the account; a successful login resets the counter and records the last access in UTC.
+
+## Two-factor authentication (TOTP / Google Authenticator)
+
+Opt-in per user. `TotpService` implements RFC 6238 by hand (HMAC-SHA1, 30 s steps, 6 digits, ±1 step tolerance) — no extra dependency. The secret is stored in `usuarios.dois_fatores_segredo` as Base64 (not encrypted); it is shown to the user in Base32 only during setup.
+
+- **Login with 2FA on is two calls.** `POST /login` with a correct password returns `{ doisFatores: true, tokenDoisFatores }` instead of tokens; `POST /login/dois-fatores` with that token and the `codigo` returns the usual `JWTResponde`. The frontend tells the two apart by `doisFatores`.
+- **`tokenDoisFatores` is signed with a key derived from `jwtSecret`** (`HMAC-SHA512(secret, "dois-fatores")`), never with the main key. The other services (`seguranca-jwt`) build the user from token claims alone, without the database, so a challenge token signed with the main key would work there as an access token without the code. It lives 5 minutes.
+- **A correct password does not reset `tentativaLogin` while 2FA is on.** Only the accepted code does. Otherwise password-then-wrong-code could be repeated forever. Wrong codes count toward the same 3-strike deactivation, both at login and at `POST /dois-fatores/desativar`.
+- **Replay:** `dois_fatores_ultimo_passo` keeps the last accepted step; a code from that step or an earlier one is refused.
+- `LoginService.loginDoisFatores` is deliberately **not** `@Transactional`: the exception for a wrong code would roll back the attempt counter.
+- Self-service endpoints, any authenticated user: `GET /dois-fatores` (status), `POST /dois-fatores/configurar` (new pending secret + `otpauth://` URI; refused while active), `POST /dois-fatores/ativar` and `POST /dois-fatores/desativar` (both take `{ codigo }`).
+
+There are no recovery codes. A user who loses the phone is recovered in the database:
+
+```sql
+UPDATE usuarios SET dois_fatores_ativo = false, dois_fatores_segredo = NULL, dois_fatores_ultimo_passo = NULL,
+                    tentativa_login = 0, ativo = true
+ WHERE email = '...';
+```
 
 ## Database migrations
 
@@ -64,7 +83,7 @@ Java **21 only**. The Homebrew default JDK on this machine is newer and will bre
 
 ```bash
 export JAVA_HOME=/Users/guilhermejr/Library/Java/JavaVirtualMachines/openjdk-21.0.2/Contents/Home
-./mvnw clean package
+mvn clean package   # the repo has mvnw but not .mvn/wrapper, so the wrapper does not run
 VAULT_TOKEN=<token> java -jar target/*.jar --spring.profiles.active=dev
 ```
 

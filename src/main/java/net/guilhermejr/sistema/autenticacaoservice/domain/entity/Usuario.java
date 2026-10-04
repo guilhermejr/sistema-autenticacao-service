@@ -46,6 +46,19 @@ public class Usuario implements Serializable {
     @Column
     private String recuperarSenha;
 
+    @Column(nullable = false)
+    private Boolean doisFatoresAtivo = Boolean.FALSE;
+
+    // --- Segredo TOTP em Base64; preenchido já na configuração, antes de ativar ---
+    @JsonIgnore
+    @Column
+    private String doisFatoresSegredo;
+
+    // --- Último passo de 30s aceito, para o mesmo código não valer duas vezes ---
+    @JsonIgnore
+    @Column
+    private Long doisFatoresUltimoPasso;
+
     @Column(updatable = false)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     private LocalDateTime criado;
