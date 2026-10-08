@@ -59,6 +59,9 @@ public class UsuarioController {
     }
 
     // --- TrocarSenha --------------------------------------------------------
+    // Qualquer usuário logado troca a própria senha (o service usa o usuário do
+    // token, nunca um id). A anotação no método vale no lugar da ROLE_ADMIN da classe.
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/trocar-senha")
     public ResponseEntity<Void> trocarSenha(@Valid @RequestBody TrocaSenhaRequest trocaSenhaRequest) {
 

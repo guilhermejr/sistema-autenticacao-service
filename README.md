@@ -32,7 +32,7 @@ Microsserviço de **autenticação e gestão de usuários** do sistema. É quem 
 | `GET` | `/usuarios/{id}` | busca um usuário |
 | `PUT` | `/usuarios/{id}` | atualiza nome e perfis |
 | `PUT` | `/usuarios/{id}/alterar-status` | ativa/inativa o usuário |
-| `PUT` | `/usuarios/trocar-senha` | troca a senha do usuário logado |
+| `PUT` | `/usuarios/trocar-senha` | troca a senha do usuário logado; vale para qualquer usuário logado, não só administrador |
 | `GET` | `/perfis` | lista os perfis disponíveis |
 
 ## Regras de negócio

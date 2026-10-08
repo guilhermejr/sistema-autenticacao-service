@@ -10,7 +10,7 @@ The **issuer** of the JWTs every other service validates. Also manages users and
 |---|---|
 | Port | `9002` |
 | Context path | `/autenticacao-service` |
-| Role required | `ROLE_ADMIN (except public routes)` |
+| Role required | `ROLE_ADMIN` (except public routes, `PUT /usuarios/trocar-senha` and `/dois-fatores/*`, open to any logged-in user) |
 
 Part of a personal microservices system; sibling repos live at `../sistema-*`. The API gateway fronts it at `https://sistema-backend.guilhermejr.net/autenticacao-service`.
 
@@ -24,7 +24,9 @@ An important difference: `AuthenticationJwtFilter` **ignores the `perfis` claim*
 
 Public routes are listed in `LISTA_BRANCA`: `/login`, `/login/dois-fatores`, `/refresh-token`, `/esqueci-minha-senha` and `/actuator/health`. Note the stale `/trocar-senha` entry — the real mapping is `/usuarios/trocar-senha`, so that entry never matches.
 
-Because the whole `UsuarioController` is annotated `ROLE_ADMIN`, `PUT /usuarios/trocar-senha` is admin-only too. A non-admin user cannot change their own password.
+`UsuarioController` is annotated `ROLE_ADMIN`, but `trocarSenha` carries its own `@PreAuthorize("isAuthenticated()")`, which wins over the class annotation: any logged-in user changes **their own** password (the service takes the user from the token, never an id). Keep it that way when adding methods — a method without its own annotation is admin-only.
+
+A denied method call answers **401, not 403**: the `AuthorizationDeniedException` is forwarded to `/error`, which is not public, so the entry point answers. The frontend treats both as an expired session.
 
 ## Token format
 
