@@ -3,6 +3,7 @@ services:
     image: guilhermejr/sistema-autenticacao-service
     container_name: autenticacao-service
     restart: always
+    env_file: /home/guilhermejr/secrets/autenticacao-service.env
     ports:
       - "127.0.0.1:9002:9002"
 
